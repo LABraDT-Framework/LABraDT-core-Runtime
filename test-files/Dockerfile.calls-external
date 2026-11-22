@@ -1,0 +1,28 @@
+FROM alpine:3.21
+RUN apk add --no-cache curl jq && adduser -D appuser
+USER appuser
+ENTRYPOINT ["sh", "-c", "\
+  echo '[docker-file→external] Container started' && \
+  HOST=$(hostname) && \
+  START=$(date -u +%H:%M:%SZ) && \
+  echo \"[docker-file→external] host=$HOST start=$START\" && \
+  echo '[docker-file→external] Triggering external-httpbin to verify network reachability...' && \
+  RESPONSE=$(curl -s -X POST \
+    -H 'Content-Type: application/json' \
+    -d '{\"serviceIds\":[\"external-httpbin\"],\"dynamicArgs\":{}}' \
+    $SERVICE_TRIGGER_NESTED_URL) && \
+  SUCCESS=$(echo \"$RESPONSE\" | jq -r '.success') && \
+  END=$(date -u +%H:%M:%SZ) && \
+  echo \"[docker-file→external] Response received at $END\" && \
+  if [ \"$SUCCESS\" = \"true\" ]; then \
+    OUTPUT=$(echo \"$RESPONSE\" | jq -r '.outputData') && \
+    BYTES=$(echo -n \"$OUTPUT\" | wc -c) && \
+    echo \"[docker-file→external] httpbin returned ${BYTES} bytes\" && \
+    echo \"docker-file→external OK | host=$HOST start=$START end=$END bytes=${BYTES}\"; \
+  else \
+    ERR=$(echo \"$RESPONSE\" | jq -r '.errorMessage') && \
+    echo \"[docker-file→external] External call failed: $ERR\" && \
+    echo \"docker-file→external FAILED | $ERR\" && \
+    exit 1; \
+  fi \
+"]

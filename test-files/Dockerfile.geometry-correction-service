@@ -1,0 +1,2 @@
+FROM alpine:latest
+CMD echo "0.0,0.0,0.0"

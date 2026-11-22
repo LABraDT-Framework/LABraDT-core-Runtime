@@ -1,0 +1,12 @@
+FROM alpine:3.21
+RUN apk add --no-cache procps && adduser -D appuser
+USER appuser
+CMD ["sh", "-c", "\
+  echo '[standalone] Container started' && \
+  HOST=$(hostname) && \
+  TIME=$(date -u +%H:%M:%SZ) && \
+  MEM_KB=$(grep MemAvailable /proc/meminfo | awk '{print $2}') && \
+  MEM_MB=$((MEM_KB / 1024)) && \
+  echo \"[standalone] host=$HOST time=$TIME mem_avail=${MEM_MB}MB\" && \
+  echo \"standalone OK - host=$HOST time=$TIME mem_avail=${MEM_MB}MB\" \
+"]

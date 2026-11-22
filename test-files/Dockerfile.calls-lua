@@ -1,0 +1,28 @@
+FROM alpine:3.21
+RUN apk add --no-cache curl jq && adduser -D appuser
+USER appuser
+ENTRYPOINT ["sh", "-c", "\
+  echo '[docker-file→lua] Container started' && \
+  HOST=$(hostname) && \
+  START=$(date -u +%H:%M:%SZ) && \
+  echo \"[docker-file→lua] host=$HOST start=$START\" && \
+  echo '[docker-file→lua] Triggering lua-hello status service...' && \
+  RESPONSE=$(curl -s -X POST \
+    -H 'Content-Type: application/json' \
+    -d '{\"serviceIds\":[\"lua-hello\"],\"dynamicArgs\":{}}' \
+    $SERVICE_TRIGGER_NESTED_URL) && \
+  SUCCESS=$(echo \"$RESPONSE\" | jq -r '.success') && \
+  OUTPUT=$(echo \"$RESPONSE\" | jq -r '.outputData') && \
+  END=$(date -u +%H:%M:%SZ) && \
+  echo \"[docker-file→lua] Response received at $END\" && \
+  if [ \"$SUCCESS\" = \"true\" ]; then \
+    STATUS=$(echo \"$OUTPUT\" | grep -o 'status=[^ ]*') && \
+    echo \"[docker-file→lua] Parsed: $STATUS\" && \
+    echo \"docker-file→lua OK | host=$HOST start=$START end=$END inner: $OUTPUT\"; \
+  else \
+    ERR=$(echo \"$RESPONSE\" | jq -r '.errorMessage') && \
+    echo \"[docker-file→lua] Inner service failed: $ERR\" && \
+    echo \"docker-file→lua FAILED | $ERR\" && \
+    exit 1; \
+  fi \
+"]

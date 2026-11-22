@@ -1,0 +1,2 @@
+# Test-only: send the service manager's engine calls to a local stub engine (StubEngineInitializer).
+org.springframework.context.ApplicationContextInitializer=de.labradt.serviceexecution.StubEngineInitializer
